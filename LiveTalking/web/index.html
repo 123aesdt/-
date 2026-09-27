@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 数字人智能交互平台</title>
+    <style>
+        :root {
+            --app-bg: #f6f8fb;
+            --surface: #ffffff;
+            --primary: #2563eb;
+            --primary-soft: #eaf1ff;
+            --primary-hover: #1d4ed8;
+            --text: #10213d;
+            --muted: #64748b;
+            --subtle: #94a3b8;
+            --line: #e8edf5;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --radius: 12px;
+            --shadow: 0 6px 24px rgba(15, 35, 68, 0.05);
+            --header-height: 76px;
+            --sidebar-width: 220px;
+            font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+        }
+        * { box-sizing: border-box; }
+        [hidden] { display: none !important; }
+        html, body { height: 100%; }
+        body { margin: 0; overflow: hidden; background: var(--app-bg); color: var(--text); font-size: 14px; }
+        button, input, textarea { font: inherit; }
+        button { border: 0; }
+        .icon { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+        .topbar { height: var(--header-height); display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 0 28px; background: var(--surface); border-bottom: 1px solid var(--line); position: relative; z-index: 30; }
+        .brand { display: flex; align-items: center; min-width: 0; }
+        .brand-title { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
+        .brand-divider { width: 1px; height: 28px; margin: 0 20px; background: var(--line); }
+        .brand-subtitle { color: var(--muted); font-size: 14px; white-space: nowrap; }
+        .user-actions { display: flex; align-items: center; gap: 12px; }
+        .icon-button { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; color: #42526b; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; transition: background-color .16s ease, color .16s ease, border-color .16s ease; }
+        .icon-button:hover { background: var(--primary-soft); color: var(--primary); border-color: #d7e3fb; }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+        .user-avatar { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; color: var(--primary); background: var(--primary-soft); font-size: 15px; font-weight: 700; }
+        .app-shell { height: calc(100vh - var(--header-height)); display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); }
+        .sidebar { min-width: 0; padding: 22px 16px; background: var(--surface); border-right: 1px solid var(--line); }
+        .nav-list { display: flex; flex-direction: column; gap: 8px; }
+        .nav-item { min-height: 48px; display: flex; align-items: center; gap: 13px; padding: 0 16px; border-radius: 10px; color: #42526b; text-decoration: none; font-size: 15px; font-weight: 500; background: transparent; cursor: pointer; transition: background-color .16s ease, color .16s ease; }
+        .nav-item:hover { color: var(--primary); background: #f3f7ff; }
+        .nav-item.active { color: var(--primary); background: var(--primary-soft); font-weight: 650; }
+        .nav-item .icon { width: 21px; height: 21px; }
+        .workspace { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 18px; padding: 22px 24px 20px; }
+        .content-grid { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 30%); gap: 18px; }
+        .avatar-stage, .conversation-panel, .composer { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
+        .avatar-stage { min-width: 0; min-height: 0; position: relative; overflow: hidden; background: #edf2f8; }
+        .media-frame { position: absolute; inset: 0; background: #eaf0f7; }
+        .media-frame img, .media-frame video { width: 100%; height: 100%; display: block; object-position: center; }
+        .media-frame img { object-fit: contain; background: #eef3f8; transition: opacity .2s ease; }
+        .media-frame video { position: absolute; inset: 0; object-fit: contain; background: #eaf0f7; opacity: 0; transition: opacity .2s ease; }
+        .media-frame.video-ready video { opacity: 1; }
+        .media-frame.video-ready img { opacity: 0; }
+        .stage-toolbar { position: absolute; z-index: 4; top: 18px; left: 18px; right: 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; }
+        .stage-toolbar > * { pointer-events: auto; }
+        .avatar-status { display: inline-flex; align-items: center; gap: 9px; min-height: 38px; padding: 0 14px; border: 1px solid rgba(255,255,255,.82); border-radius: 10px; background: rgba(255,255,255,.92); box-shadow: 0 3px 12px rgba(30,52,84,.07); color: var(--text); font-size: 14px; font-weight: 650; }
+        .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px rgba(34,197,94,.12); }
+        .avatar-status.listening .status-dot { background: #0ea5e9; box-shadow: 0 0 0 4px rgba(14,165,233,.13); }
+        .avatar-status.thinking .status-dot { background: #f59e0b; box-shadow: 0 0 0 4px rgba(245,158,11,.14); }
+        .avatar-status.answering .status-dot { background: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,.13); }
+        .avatar-status.offline .status-dot { background: var(--subtle); box-shadow: 0 0 0 4px rgba(148,163,184,.14); }
+        .stage-actions { display: flex; align-items: center; gap: 8px; }
+        .stage-button { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 13px; border: 1px solid rgba(255,255,255,.82); border-radius: 10px; background: rgba(255,255,255,.92); box-shadow: 0 3px 12px rgba(30,52,84,.07); color: #31415b; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .stage-button:hover { color: var(--primary); }
+        .stage-button.primary { color: #fff; background: var(--primary); border-color: var(--primary); }
+        .stage-button.primary:hover { background: var(--primary-hover); }
+        .stage-button .icon { width: 17px; height: 17px; }
+        .connection-error { position: absolute; z-index: 5; left: 50%; bottom: 18px; transform: translateX(-50%); max-width: calc(100% - 36px); padding: 10px 14px; border-radius: 9px; color: #991b1b; background: rgba(254,226,226,.96); font-size: 13px; box-shadow: 0 4px 16px rgba(127,29,29,.08); }
+        .conversation-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+        .panel-header { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+        .panel-title { margin: 0; font-size: 18px; font-weight: 700; }
+        .clear-button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 8px; border-radius: 8px; color: var(--muted); background: transparent; font-size: 13px; cursor: pointer; }
+        .clear-button:hover { color: var(--danger); background: #fff1f2; }
+        .clear-button .icon { width: 16px; height: 16px; }
+        .messages { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 18px 24px; scrollbar-width: thin; scrollbar-color: #d8e0ea transparent; }
+        .message { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 22px; }
+        .message.user { justify-content: flex-end; }
+        .message-avatar { width: 32px; height: 32px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: var(--primary); background: var(--primary-soft); font-size: 12px; font-weight: 700; }
+        .message.digital-human .message-avatar { background-image: url('/assets/doctor-li-yanyan.png'); background-size: cover; background-position: 50% 18%; color: transparent; }
+        .message-body { max-width: 82%; }
+        .message-meta { display: flex; align-items: center; gap: 8px; margin: 0 2px 7px; color: var(--subtle); font-size: 12px; }
+        .message.user .message-meta { justify-content: flex-end; }
+        .message-name { color: #3d4b63; font-weight: 600; }
+        .message-bubble { padding: 11px 14px; border-radius: 12px; color: #26364f; background: #f1f4f8; line-height: 1.65; word-break: break-word; }
+        .message.user .message-bubble { color: #194185; background: #eaf2ff; border-top-right-radius: 4px; }
+        .message.digital-human .message-bubble { border-top-left-radius: 4px; }
+        .messages-empty { display: grid; place-items: center; height: 100%; color: var(--subtle); text-align: center; }
+        .composer { min-width: 0; min-height: 116px; display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 18px; padding: 16px 20px; }
+        .voice-control { align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+        .mic-button { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--primary); box-shadow: 0 6px 16px rgba(37,99,235,.22); cursor: pointer; touch-action: none; transition: transform .14s ease, background-color .14s ease; }
+        .mic-button:hover { background: var(--primary-hover); }
+        .mic-button:active, .mic-button.recording { transform: scale(.96); background: #dc2626; }
+        .mic-button .icon { width: 25px; height: 25px; stroke-width: 2; }
+        .voice-label { color: #37465d; font-size: 12px; font-weight: 600; }
+        .message-input-wrap { min-width: 0; }
+        .message-input { width: 100%; min-height: 48px; max-height: 82px; resize: none; padding: 13px 15px; border: 1px solid #dbe3ee; border-radius: 10px; outline: none; color: var(--text); background: #fff; line-height: 1.5; transition: border-color .16s ease, box-shadow .16s ease; }
+        .message-input::placeholder { color: var(--subtle); }
+        .message-input:focus { border-color: #8eb2f5; box-shadow: 0 0 0 3px rgba(37,99,235,.09); }
+        .input-hint { margin: 7px 2px 0; color: var(--subtle); font-size: 12px; }
+        .send-button { min-width: 98px; height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px; border-radius: 10px; color: #fff; background: var(--primary); font-size: 15px; font-weight: 650; cursor: pointer; transition: background-color .16s ease, transform .14s ease; }
+        .send-button:hover { background: var(--primary-hover); }
+        .send-button:active { transform: translateY(1px); }
+        .send-button .icon { width: 18px; height: 18px; }
+        .settings-drawer { position: fixed; z-index: 60; top: var(--header-height); right: 0; bottom: 0; width: min(390px, 92vw); padding: 22px; overflow-y: auto; background: #fff; border-left: 1px solid var(--line); box-shadow: -10px 0 30px rgba(15,35,68,.08); transform: translateX(102%); transition: transform .2s ease; }
+        .settings-drawer.open { transform: translateX(0); }
+        .drawer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .drawer-title { margin: 0; font-size: 18px; }
+        .settings-group { padding: 18px 0; border-top: 1px solid var(--line); }
+        .settings-group:first-of-type { border-top: 0; padding-top: 0; }
+        .settings-group h3 { margin: 0 0 14px; font-size: 14px; }
+        .field { margin-bottom: 13px; }
+        .field label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
+        .field input, .field select { width: 100%; height: 40px; padding: 0 11px; border: 1px solid #dbe3ee; border-radius: 9px; outline: none; color: var(--text); background: #fff; }
+        .settings-row { display: flex; gap: 9px; flex-wrap: wrap; }
+        .secondary-button { min-height: 38px; padding: 0 13px; border-radius: 9px; color: var(--primary); background: var(--primary-soft); font-weight: 600; cursor: pointer; }
+        .secondary-button:hover { background: #dce9ff; }
+        .secondary-button.danger { color: #b42318; background: #fff1f2; }
+        .file-input { font-size: 12px; }
+        .drawer-backdrop { position: fixed; z-index: 55; inset: var(--header-height) 0 0; background: rgba(15,35,68,.16); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+        .drawer-backdrop.show { opacity: 1; pointer-events: auto; }
+        .toast { position: fixed; z-index: 80; left: 50%; bottom: 26px; transform: translate(-50%, 18px); padding: 11px 16px; border-radius: 9px; color: #fff; background: #17233a; box-shadow: 0 8px 24px rgba(15,35,68,.18); opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease; }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+        @media (max-width: 1200px) {
+            :root { --sidebar-width: 84px; }
+            .sidebar { padding-inline: 12px; }
+            .nav-item { justify-content: center; padding: 0; }
+            .nav-label { display: none; }
+            .brand-subtitle, .brand-divider { display: none; }
+            .content-grid { grid-template-columns: minmax(0, 1fr) minmax(320px, 34%); }
+        }
+        @media (max-width: 900px) {
+            body { overflow-y: auto; }
+            .app-shell { height: auto; min-height: calc(100vh - var(--header-height)); }
+            .workspace { grid-template-rows: auto auto; }
+            .content-grid { grid-template-columns: 1fr; grid-template-rows: minmax(460px, 62vh) 360px; }
+            .composer { position: sticky; bottom: 0; z-index: 20; }
+        }
+        @media (max-width: 680px) {
+            :root { --header-height: 68px; }
+            .topbar { padding: 0 16px; }
+            .brand-title { font-size: 18px; }
+            .user-profile span:last-child { display: none; }
+            .app-shell { display: block; }
+            .sidebar { display: none; }
+            .workspace { padding: 12px; }
+            .content-grid { grid-template-rows: 54vh 340px; }
+            .composer { grid-template-columns: 64px minmax(0, 1fr); gap: 10px; padding: 12px; }
+            .send-button { grid-column: 2; width: 100%; }
+            .stage-button span { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <h1 class="brand-title">AI 数字人智能交互平台</h1>
+            <span class="brand-divider" aria-hidden="true"></span>
+            <span class="brand-subtitle">实时语音识别 · 智能对话 · 语音合成 · 数字人驱动</span>
+        </div>
+        <div class="user-actions">
+            <button class="icon-button" id="settingsToggle" type="button" aria-label="打开设置" title="设置" onclick="toggleSettings(true)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.55v-.1A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 0 0 4.1 15a1.7 1.7 0 0 0-1.6-1H2.4V10h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06L6.56 4.2l.06.06A1.7 1.7 0 0 0 8.5 4.6a1.7 1.7 0 0 0 1-1.6v-.1h4.05V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.86 2.86-.06.06A1.7 1.7 0 0 0 18.95 9a1.7 1.7 0 0 0 1.6 1h.1v4h-.1a1.7 1.7 0 0 0-1.15 1z"></path></svg></button>
+            <div class="user-profile" aria-label="当前用户 admin"><span class="user-avatar">A</span><span>admin</span></div>
+        </div>
+    </header>
+    <div class="app-shell">
+        <aside class="sidebar" aria-label="主导航">
+            <nav class="nav-list">
+                <a class="nav-item active" href="/index.html" aria-current="page"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"></path><path d="M8 11h.01M12 11h.01M16 11h.01"></path></svg><span class="nav-label">数字人对话</span></a>
+                <a class="nav-item" href="/admin.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5M9 13h7M9 17h5"></path></svg><span class="nav-label">会话记录</span></a>
+                <button class="nav-item" type="button" onclick="showToast('知识库将在医疗知识接入阶段开启')"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg><span class="nav-label">知识库</span></button>
+                <a class="nav-item" href="/tts/index.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8 8 0 0 1 0 12"></path></svg><span class="nav-label">语音设置</span></a>
+                <a class="nav-item" href="/admin.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.6H10a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1v-4a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06L7.06 4.2l.06.06A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3h4a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.86 2.86-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.6 1v4a1.7 1.7 0 0 0-1.6 1z"></path></svg><span class="nav-label">模型设置</span></a>
+            </nav>
+        </aside>
+        <main class="workspace">
+            <section class="content-grid" aria-label="数字人对话工作区">
+                <section class="avatar-stage" id="avatarStage" aria-label="数字人展示区">
+                    <div class="media-frame" id="mediaFrame"><img id="avatarPoster" src="/assets/doctor-li-yanyan.png" alt="李思妍医生数字人"><video id="video" autoplay playsinline muted></video><audio id="audio" autoplay></audio></div>
+                    <div class="stage-toolbar">
+                        <div class="avatar-status offline" id="avatarStatus" role="status" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><span id="avatarStatusText">离线 · 等待连接</span></div>
+                        <div class="stage-actions">
+                            <button class="stage-button primary" id="btnStart" type="button" onclick="start()"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"></path></svg><span>连接数字人</span></button>
+                            <button class="stage-button" id="btnStop" type="button" onclick="stop()" hidden><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"></rect></svg><span>断开</span></button>
+                            <button class="stage-button" type="button" onclick="toggleFullscreen()"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"></path></svg><span>全屏</span></button>
+                        </div>
+                    </div>
+                    <div class="connection-error" id="offerError" role="alert" hidden></div>
+                </section>
+                <aside class="conversation-panel" id="conversationPanel" aria-label="对话记录">
+                    <div class="panel-header"><h2 class="panel-title">对话记录</h2><button class="clear-button" type="button" onclick="clearMessages()"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"></path></svg><span>清空</span></button></div>
+                    <div class="messages" id="messages" aria-live="polite">
+                        <article class="message user"><div class="message-body"><div class="message-meta"><span class="message-name">用户</span><time>10:24</time></div><div class="message-bubble">你好，请介绍一下今天的健康建议。</div></div><div class="message-avatar" aria-hidden="true">我</div></article>
+                        <article class="message digital-human"><div class="message-avatar" aria-hidden="true">数</div><div class="message-body"><div class="message-meta"><span class="message-name">数字人</span><time>10:24</time></div><div class="message-bubble">您好，今天建议保持规律作息、适量运动，并注意均衡饮食。</div></div></article>
+                    </div>
+                </aside>
+            </section>
+            <section class="composer" id="composer" aria-label="消息输入区">
+                <div class="voice-control"><button class="mic-button" id="holdToTalk" type="button" aria-label="按住说话"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"></path></svg></button><span class="voice-label" id="voiceLabel">按住说话</span></div>
+                <div class="message-input-wrap"><textarea class="message-input" id="txtMessage" rows="1" placeholder="请输入您的问题……"></textarea><p class="input-hint">支持语音输入或文字输入，Shift + Enter 换行</p></div>
+                <button class="send-button" id="sendButton" type="button" onclick="sendText()"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13"></path></svg><span>发送</span></button>
+            </section>
+        </main>
+    </div>
+    <div class="drawer-backdrop" id="drawerBackdrop" onclick="toggleSettings(false)"></div>
+    <aside class="settings-drawer" id="settingsDrawer" aria-label="高级设置" aria-hidden="true">
+        <div class="drawer-header"><h2 class="drawer-title">交互设置</h2><button class="icon-button" type="button" aria-label="关闭设置" onclick="toggleSettings(false)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg></button></div>
+        <section class="settings-group"><h3>数字人连接</h3><div class="field"><label for="offerAvatar">Avatar ID</label><input id="offerAvatar" value="renhe_hospital_doctor"></div><div class="field"><label for="offerRefAudio">参考音频 / TTS 音色</label><input id="offerRefAudio" value="zh-CN-YunxiaNeural"></div><div class="field"><label for="offerRefText">参考音频文本</label><input id="offerRefText" placeholder="可选"></div><input type="hidden" id="txtType" value="chat"><input type="checkbox" id="txtInterrupt" checked hidden></section>
+        <section class="settings-group"><h3>音频与录制</h3><div class="field"><label for="audioFile">上传音频驱动</label><input class="file-input" type="file" id="audioFile" accept="audio/*"></div><div class="settings-row"><button class="secondary-button" type="button" onclick="uploadAudio()">上传并播放</button><button class="secondary-button" id="btnRecToggle" type="button" onclick="toggleRecord()">开始录制</button><button class="secondary-button" id="btnDownload" type="button" onclick="downloadRecord()" disabled>下载录像</button></div></section>
+        <section class="settings-group"><h3>动作编排</h3><div class="field"><label for="audiotypeVal">Audiotype 索引</label><input type="number" id="audiotypeVal" value="2" min="2"></div><div class="settings-row"><button class="secondary-button" type="button" onclick="setAudiotype()">切换状态</button><button class="secondary-button danger" type="button" onclick="interrupt()">打断播报</button></div></section>
+    </aside>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="audio-utils.js"></script>
+    <script>
+        let pc = null;
+        let sessionid = null;
+        let recording = false;
+        let mediaRecorder = null;
+        let microphoneStream = null;
+        let voiceChunks = [];
+        let toastTimer = null;
+        const byId = id => document.getElementById(id);
+        function setAvatarState(state, text) { const status = byId('avatarStatus'); status.className = `avatar-status ${state}`; byId('avatarStatusText').textContent = text; }
+        function setSessionId(sid) { sessionid = sid || null; }
+        function updateConnectionControls(connected) { byId('btnStart').hidden = connected; byId('btnStop').hidden = !connected; }
+        function showError(message) { const error = byId('offerError'); error.textContent = message; error.hidden = false; window.setTimeout(() => { error.hidden = true; }, 8000); }
+        function showToast(message) { const toast = byId('toast'); toast.textContent = message; toast.classList.add('show'); window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => toast.classList.remove('show'), 2600); }
+        function toggleSettings(open) { byId('settingsDrawer').classList.toggle('open', open); byId('settingsDrawer').setAttribute('aria-hidden', String(!open)); byId('drawerBackdrop').classList.toggle('show', open); }
+        function toggleFullscreen() { const stage = byId('avatarStage'); if (!document.fullscreenElement) stage.requestFullscreen?.(); else document.exitFullscreen?.(); }
+        async function negotiate() {
+            pc.addTransceiver('video', { direction: 'recvonly' });
+            pc.addTransceiver('audio', { direction: 'recvonly' });
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            if (pc.iceGatheringState !== 'complete') await new Promise(resolve => { const checkState = () => { if (pc.iceGatheringState === 'complete') { pc.removeEventListener('icegatheringstatechange', checkState); resolve(); } }; pc.addEventListener('icegatheringstatechange', checkState); });
+            const body = { sdp: pc.localDescription.sdp, type: pc.localDescription.type, avatar: byId('offerAvatar').value || undefined, refaudio: byId('offerRefAudio').value || undefined, reftext: byId('offerRefText').value || undefined };
+            const response = await fetch('/offer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const answer = await response.json();
+            if (!response.ok || (answer.code && answer.code !== 0)) throw new Error(answer.msg || `连接失败（${response.status}）`);
+            if (!answer.sdp) throw new Error('服务器未返回 WebRTC SDP');
+            setSessionId(answer.sessionid);
+            await pc.setRemoteDescription({ type: 'answer', sdp: answer.sdp });
+        }
+        async function start() {
+            if (pc) stop();
+            byId('offerError').hidden = true;
+            updateConnectionControls(true);
+            setAvatarState('thinking', '正在连接数字人');
+            pc = new RTCPeerConnection({ sdpSemantics: 'unified-plan', iceServers: [{ urls: 'turn:127.0.0.1:3478?transport=tcp', username: 'livetalking', credential: 'livetalking-demo-only' }], iceTransportPolicy: 'relay' });
+            pc.addEventListener('track', event => { if (event.track.kind === 'video') { byId('video').srcObject = event.streams[0]; byId('mediaFrame').classList.add('video-ready'); } else byId('audio').srcObject = event.streams[0]; });
+            pc.addEventListener('connectionstatechange', () => { if (!pc) return; if (pc.connectionState === 'connected') { setAvatarState('idle', '在线 · 待机中'); updateConnectionControls(true); } else if (pc.connectionState === 'connecting') setAvatarState('thinking', '正在连接数字人'); else if (['failed','disconnected','closed'].includes(pc.connectionState)) { setAvatarState('offline', '离线 · 等待连接'); updateConnectionControls(false); } });
+            try { await negotiate(); } catch (error) { showError(error.message || String(error)); stop(); }
+        }
+        function stop() { if (pc) pc.close(); pc = null; setSessionId(null); byId('video').srcObject = null; byId('audio').srcObject = null; byId('mediaFrame').classList.remove('video-ready'); setAvatarState('offline', '离线 · 等待连接'); updateConnectionControls(false); }
+        function currentTime() { return new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date()); }
+        function appendMessage(role, text) {
+            const messages = byId('messages'); messages.querySelector('.messages-empty')?.remove();
+            const article = document.createElement('article'); article.className = `message ${role === 'user' ? 'user' : 'digital-human'}`;
+            const avatar = document.createElement('div'); avatar.className = 'message-avatar'; avatar.setAttribute('aria-hidden','true'); avatar.textContent = role === 'user' ? '我' : '数';
+            const body = document.createElement('div'); body.className = 'message-body';
+            const meta = document.createElement('div'); meta.className = 'message-meta';
+            const name = document.createElement('span'); name.className = 'message-name'; name.textContent = role === 'user' ? '用户' : '数字人';
+            const time = document.createElement('time'); time.textContent = currentTime();
+            const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.textContent = text;
+            meta.append(name,time); body.append(meta,bubble); role === 'user' ? article.append(body,avatar) : article.append(avatar,body); messages.appendChild(article); messages.scrollTop = messages.scrollHeight;
+        }
+        function clearMessages() { byId('messages').innerHTML = '<div class="messages-empty">暂无对话记录<br>可以通过语音或文字开始对话</div>'; }
+        async function sendText() {
+            const input = byId('txtMessage'); const text = input.value.trim(); if (!text) return; if (!sessionid) return showToast('请先连接数字人');
+            input.value = ''; appendMessage('user',text); setAvatarState('thinking','正在思考');
+            try { const response = await fetch('/human', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ text, type:byId('txtType').value, interrupt:byId('txtInterrupt').checked, sessionid:String(sessionid) }) }); const result = await response.json(); if (!response.ok || (result.code && result.code !== 0)) throw new Error(result.msg || '发送失败'); setAvatarState('answering','正在回答'); appendMessage('digital-human','已收到问题，正在生成并播报回答。'); window.setTimeout(() => { if (pc?.connectionState === 'connected') setAvatarState('idle','在线 · 待机中'); },4200); } catch (error) { setAvatarState('idle','在线 · 待机中'); showError(error.message || String(error)); }
+        }
+        async function sendAudioBlob(blob, filename='microphone.webm') { if (!sessionid) throw new Error('请先连接数字人'); const form = new FormData(); form.append('file',blob,filename); form.append('sessionid',String(sessionid)); setAvatarState('thinking','正在处理语音'); const response = await fetch('/humanaudio',{method:'POST',body:form}); const result = await response.json(); if (!response.ok || (result.code && result.code !== 0)) throw new Error(result.msg || '语音发送失败'); setAvatarState('answering','正在回答'); appendMessage('user','[语音消息]'); window.setTimeout(() => { if (pc?.connectionState === 'connected') setAvatarState('idle','在线 · 待机中'); },3200); }
+        async function beginVoiceInput(event) {
+            event.preventDefault(); if (!sessionid) return showToast('请先连接数字人'); if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return showToast('当前浏览器不支持麦克风录音');
+            try { microphoneStream = await navigator.mediaDevices.getUserMedia({audio:true}); voiceChunks=[]; mediaRecorder=new MediaRecorder(microphoneStream); mediaRecorder.addEventListener('dataavailable',e=>{if(e.data.size)voiceChunks.push(e.data);}); mediaRecorder.addEventListener('stop',async()=>{const recordedBlob=new Blob(voiceChunks,{type:mediaRecorder.mimeType||'audio/webm'}); microphoneStream?.getTracks().forEach(track=>track.stop()); microphoneStream=null; try{const wavBlob=await LiveTalkingAudio.recordedBlobToWav(recordedBlob); await sendAudioBlob(wavBlob,'microphone.wav');}catch(error){showError(error.message||String(error));}},{once:true}); mediaRecorder.start(); byId('holdToTalk').classList.add('recording'); byId('voiceLabel').textContent='松开结束'; setAvatarState('listening','正在聆听'); } catch(error) { showError('无法使用麦克风：'+(error.message||String(error))); }
+        }
+        function endVoiceInput(event) { event.preventDefault(); if (mediaRecorder?.state === 'recording') mediaRecorder.stop(); byId('holdToTalk').classList.remove('recording'); byId('voiceLabel').textContent='按住说话'; }
+        async function uploadAudio() { const file=byId('audioFile').files[0]; if(!file)return showToast('请选择音频文件'); try{await sendAudioBlob(file,file.name);}catch(error){showError(error.message||String(error));} }
+        function interrupt() { if(!sessionid)return showToast('请先连接数字人'); fetch('/interrupt_talk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionid:String(sessionid)})}).then(()=>setAvatarState('idle','在线 · 待机中')); }
+        async function toggleRecord() { if(!sessionid)return showToast('请先连接数字人'); const type=recording?'end_record':'start_record'; const response=await fetch('/record',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,sessionid:String(sessionid)})}); if(!response.ok)return showError('录制操作失败'); recording=!recording; byId('btnRecToggle').textContent=recording?'停止录制':'开始录制'; byId('btnDownload').disabled=recording; showToast(recording?'已开始录制':'录制已完成'); }
+        function downloadRecord() { if(sessionid)window.open('/record/'+sessionid,'_blank'); }
+        function setAudiotype() { if(!sessionid)return showToast('请先连接数字人'); fetch('/set_audiotype',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audiotype:Number(byId('audiotypeVal').value)||2,sessionid:String(sessionid)})}).then(()=>showToast('动作状态已切换')); }
+        byId('txtMessage').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendText();}});
+        byId('holdToTalk').addEventListener('pointerdown',beginVoiceInput);
+        window.addEventListener('pointerup',endVoiceInput);
+        window.addEventListener('pointercancel',endVoiceInput);
+        window.addEventListener('beforeunload',()=>pc?.close());
+        document.addEventListener('keydown',event=>{if(event.key==='Escape')toggleSettings(false);});
+    </script>
+</body>
+</html>
